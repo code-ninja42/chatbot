@@ -1,3 +1,4 @@
+import os
 import requests
 
 from dotenv import load_dotenv
@@ -5,14 +6,14 @@ from langchain.tools import tool
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-
-# Load .env
 load_dotenv()
 
 
-# =========================================================
-# TOOL 1: PRODUCTS API
-# =========================================================
+API_BASE_URL = os.getenv(
+    "API_BASE_URL",
+    "https://chatbot-project-pro5.onrender.com"
+)
+
 
 @tool
 def get_products():
@@ -22,19 +23,15 @@ def get_products():
     Use this when the user asks about:
     products, prices, stock, categories, or availability.
     """
-
     response = requests.get(
-        "http://127.0.0.1:8000/products"
+        f"{API_BASE_URL}/products",
+        timeout=30
     )
 
     response.raise_for_status()
 
     return response.json()
 
-
-# =========================================================
-# TOOL 2: ORDERS API
-# =========================================================
 
 @tool
 def get_orders():
@@ -44,9 +41,9 @@ def get_orders():
     Use this when the user asks about:
     orders, order status, customers, or tracking information.
     """
-
     response = requests.get(
-        "http://127.0.0.1:8000/orders"
+        f"{API_BASE_URL}/orders",
+        timeout=30
     )
 
     response.raise_for_status()
@@ -54,29 +51,17 @@ def get_orders():
     return response.json()
 
 
-# =========================================================
-# GEMINI LLM
-# =========================================================
-
 llm = ChatGoogleGenerativeAI(
     model="gemini-3.6-flash",
     temperature=0
 )
 
 
-# =========================================================
-# TOOLS
-# =========================================================
-
 tools = [
     get_products,
     get_orders
 ]
 
-
-# =========================================================
-# AGENT
-# =========================================================
 
 agent = create_agent(
     model=llm,
@@ -103,40 +88,51 @@ RULES:
    in the tool result, say:
    "I don't have that information."
 
-6. When comparing products, such as highest price,
-   lowest price, highest stock, or lowest stock,
-   examine the complete product data returned
-   by get_products.
+6. When comparing products, examine all products
+   returned by get_products.
 
-7. Give a short, clear answer to the user.
+7. For questions such as:
+   - highest price
+   - lowest price
+   - highest stock
+   - lowest stock
+   - most expensive product
+   - cheapest product
 
-8. Do not show tool calls or technical details
-   to the user.
+   examine ALL products returned by get_products
+   before answering.
+
+8. For questions about unavailable products,
+   check the availability field from get_products.
+
+9. For questions about cancelled orders,
+   check the status field from get_orders.
+
+10. Give short and clear answers.
+
+11. Do not show tool calls or technical details
+    to the user.
+
+12. If the user says something casual such as
+    "hi", "hello", or "hii", respond normally
+    without using a tool.
 """
 )
 
 
-# =========================================================
-# CHATBOT FUNCTION
-# =========================================================
-
 def ask_chatbot(question):
 
-    result = agent.invoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": question
-                }
-            ]
-        }
-    )
+    result = agent.invoke({
+        "messages": [
+            {
+                "role": "user",
+                "content": question
+            }
+        ]
+    })
 
-    # Get final Gemini response
     content = result["messages"][-1].content
 
-    # Gemini can return content as a list
     if isinstance(content, list):
 
         text_parts = []
@@ -151,48 +147,8 @@ def ask_chatbot(question):
                     )
 
             elif isinstance(item, str):
-
                 text_parts.append(item)
 
         return "".join(text_parts).strip()
 
     return str(content).strip()
-
-
-# =========================================================
-# RUN CHATBOT
-# =========================================================
-
-if __name__ == "__main__":
-
-    print("===================================")
-    print("        STORE CHATBOT")
-    print("===================================")
-    print("Type 'exit' to stop.")
-    print()
-
-    while True:
-
-        question = input("You: ").strip()
-
-        if question.lower() == "exit":
-
-            print("Chatbot stopped.")
-            break
-
-        if not question:
-            continue
-
-        try:
-
-            answer = ask_chatbot(question)
-
-            print()
-            print("Bot:", answer)
-            print()
-
-        except Exception as e:
-
-            print()
-            print("Error:", e)
-            print()
