@@ -1,5 +1,6 @@
 import requests
 import os
+import re
 
 from dotenv import load_dotenv
 from langchain.tools import tool
@@ -135,8 +136,16 @@ def ask_chatbot(question):
         return result
 
 
-    # Orders
-    if "order" in q or "tracking" in q:
+    # =========================
+    # ORDERS
+    # =========================
+
+    if (
+        "order" in q
+        or "tracking" in q
+        or "delivery" in q
+        or "shipment" in q
+    ):
 
         data = get_orders.invoke({})
 
@@ -145,6 +154,33 @@ def ask_chatbot(question):
         if not orders:
             return "No orders found."
 
+
+        # Find specific order ID
+        match = re.search(
+            r"order\s*(?:id|number|no\.?|#)?\s*(\d+)",
+            q
+        )
+
+
+        # If specific order ID is found
+        if match:
+
+            order_id = int(match.group(1))
+
+            for order in orders:
+
+                if int(order["id"]) == order_id:
+
+                    return (
+                        f"Order #{order_id} for "
+                        f"{order['customer_name']} is "
+                        f"{order['status']}."
+                    )
+
+            return f"I couldn't find order #{order_id}."
+
+
+        # If no specific order ID
         result = "Here are the orders:\n\n"
 
         for order in orders:
