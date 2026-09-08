@@ -1,0 +1,221 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+/* HEADER */
+
+.top-header {
+  background: #111827;
+  color: white;
+  padding: 18px 35px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.top-header h1 {
+  margin: 0;
+}
+
+.top-header p {
+  margin: 5px 0 0;
+  color: #d1d5db;
+}
+
+nav {
+  display: flex;
+  gap: 10px;
+}
+
+nav button {
+  border: none;
+  padding: 10px 15px;
+  border-radius: 7px;
+  cursor: pointer;
+  background: #374151;
+  color: white;
+}
+
+nav button.active {
+  background: #2563eb;
+}
+
+/* COMMON PAGE */
+
+.page {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+.page h2 {
+  margin-bottom: 25px;
+}
+
+/* CHAT */
+
+.chat-container {
+  width: 750px;
+  height: 650px;
+  margin: 40px auto;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.messages {
+  flex: 1;
+  padding: 25px;
+  overflow-y: auto;
+}
+
+.message {
+  max-width: 75%;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  line-height: 1.5;
+}
+
+.bot-message {
+  background: #e5e7eb;
+  margin-right: auto;
+}
+
+.user-message {
+  background: #2563eb;
+  color: white;
+  margin-left: auto;
+}
+
+.input-area {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  border-top: 1px solid #ddd;
+}
+
+.input-area input {
+  flex: 1;
+  padding: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.input-area button,
+.form button,
+.admin-buttons button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* PRODUCTS */
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.product-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+}
+
+.product-card h3 {
+  margin-top: 0;
+}
+
+/* FORMS */
+
+.form {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 550px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+}
+
+.form input,
+.form select {
+  padding: 13px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  font-size: 15px;
+}
+
+.form label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ADMIN */
+
+.admin-buttons {
+  display: flex;
+  gap: 20px;
+}
+
+.admin-buttons button {
+  padding: 18px 30px;
+  font-size: 16px;
+}
+
+/* ORDERS */
+
+.refresh {
+  padding: 10px 15px;
+  border: none;
+  background: #374151;
+  color: white;
+  border-radius: 7px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.orders-container {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background: #f3f4f6;
+}

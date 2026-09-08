@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+python-dotenv
+requests
+pydantic
+langchain
+langchain-google-genai
