@@ -1,199 +1,117 @@
 import requests
 import os
-import re
 
 from dotenv import load_dotenv
 from langchain.tools import tool
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.agents import create_agent
 
 load_dotenv()
 
 API_BASE_URL = "https://chatbot-project-pro5.onrender.com"
 
 
+# =========================================
+# TOOL 1: GET PRODUCTS
+# =========================================
+
 @tool
 def get_products():
-    """Get all products from the store."""
+    """Get all products from the store including price, stock and availability."""
+
     response = requests.get(
         f"{API_BASE_URL}/products",
         timeout=30
     )
+
     response.raise_for_status()
+
     return response.json()
 
 
+# =========================================
+# TOOL 2: GET ORDERS
+# =========================================
+
 @tool
 def get_orders():
-    """Get all orders from the store."""
+    """Get all orders including customer name, order ID, status and tracking information."""
+
     response = requests.get(
         f"{API_BASE_URL}/orders",
         timeout=30
     )
+
     response.raise_for_status()
+
     return response.json()
 
 
+# =========================================
+# GEMINI MODEL
+# =========================================
+
+llm = ChatGoogleGenerativeAI(
+    model="gemini-3.6-flash",
+    google_api_key=os.getenv("GOOGLE_API_KEY"),
+    temperature=0
+)
+
+
+# =========================================
+# LANGCHAIN AGENT
+# =========================================
+
+agent = create_agent(
+    model=llm,
+    tools=[
+        get_products,
+        get_orders
+    ],
+    system_prompt="""
+You are a helpful store assistant.
+
+You can help users with:
+
+1. Products
+2. Product prices
+3. Product stock
+4. Product availability
+5. Cheapest products
+6. Most expensive products
+7. Orders
+8. Order status
+9. Delivery status
+10. Tracking information
+
+IMPORTANT:
+
+- Use the available tools whenever the user asks about real store data.
+- Do not invent product or order information.
+- For product questions, use get_products.
+- For order questions, use get_orders.
+- If the user provides an order ID, find that order from the tool result.
+- Answer clearly and naturally.
+- Keep answers concise.
+"""
+)
+
+
+# =========================================
+# CHAT FUNCTION
+# =========================================
+
 def ask_chatbot(question):
 
-    q = question.lower().strip()
-
-    # Greeting
-    if q in ["hi", "hii", "hello", "hey", "hello!"]:
-        return "Hello! 👋 How can I help you with our store?"
-
-
-    # Get products directly
-    if any(word in q for word in [
-        "product",
-        "price",
-        "stock",
-        "available",
-        "availability",
-        "cheapest",
-        "lowest price",
-        "highest price",
-        "most expensive"
-    ]):
-
-        data = get_products.invoke({})
-
-        products = data.get("products", [])
-
-        if not products:
-            return "No products found."
-
-
-        # Highest price
-        if (
-            "highest price" in q
-            or "most expensive" in q
-            or "maximum price" in q
-        ):
-            product = max(
-                products,
-                key=lambda x: float(x["price"])
-            )
-
-            return (
-                f"The product with the highest price is "
-                f"{product['name']} at ₹{product['price']}."
-            )
-
-
-        # Lowest price
-        if (
-            "lowest price" in q
-            or "lowest" in q
-            or "cheapest" in q
-            or "minimum price" in q
-        ):
-            product = min(
-                products,
-                key=lambda x: float(x["price"])
-            )
-
-            return (
-                f"The product with the lowest price is "
-                f"{product['name']} at ₹{product['price']}."
-            )
-
-
-        # Highest stock
-        if "highest stock" in q:
-            product = max(
-                products,
-                key=lambda x: int(x["stock"])
-            )
-
-            return (
-                f"{product['name']} has the highest stock "
-                f"with {product['stock']} units."
-            )
-
-
-        # Lowest stock
-        if "lowest stock" in q:
-            product = min(
-                products,
-                key=lambda x: int(x["stock"])
-            )
-
-            return (
-                f"{product['name']} has the lowest stock "
-                f"with {product['stock']} units."
-            )
-
-
-        # Product list
-        result = "Here are our products:\n\n"
-
-        for product in products:
-            result += (
-                f"• {product['name']} - "
-                f"₹{product['price']} "
-                f"(Stock: {product['stock']})\n"
-            )
-
-        return result
-
-
-    # =========================
-    # ORDERS
-    # =========================
-
-    if (
-        "order" in q
-        or "tracking" in q
-        or "delivery" in q
-        or "shipment" in q
-    ):
-
-        data = get_orders.invoke({})
-
-        orders = data.get("orders", [])
-
-        if not orders:
-            return "No orders found."
-
-
-        # Find specific order ID
-        match = re.search(
-            r"order\s*(?:id|number|no\.?|#)?\s*(\d+)",
-            q
-        )
-
-
-        # If specific order ID is found
-        if match:
-
-            order_id = int(match.group(1))
-
-            for order in orders:
-
-                if int(order["id"]) == order_id:
-
-                    return (
-                        f"Order #{order_id} for "
-                        f"{order['customer_name']} is "
-                        f"{order['status']}."
-                    )
-
-            return f"I couldn't find order #{order_id}."
-
-
-        # If no specific order ID
-        result = "Here are the orders:\n\n"
-
-        for order in orders:
-            result += (
-                f"• Order #{order['id']} - "
-                f"{order['customer_name']} - "
-                f"{order['status']}\n"
-            )
-
-        return result
-
-
-    return (
-        "I can help you with products, prices, "
-        "stock, availability, and orders."
+    response = agent.invoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ]
+        }
     )
+
+    return response["messages"][-1].content
