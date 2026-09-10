@@ -1,42 +1,30 @@
 import os
-import time
 import requests
 
 from dotenv import load_dotenv
 from langchain.tools import tool
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain.agents import create_agent
+
 
 load_dotenv()
 
 
-# =========================================================
-# LIVE BACKEND URL
-# =========================================================
-
 API_BASE_URL = "https://chatbot-project-pro5.onrender.com"
 
 
-# =========================================================
+# -------------------------------------------------
 # PRODUCT TOOL
-# =========================================================
+# -------------------------------------------------
 
 @tool
 def get_products():
     """
     Get all products from the store.
 
-    Use this tool for:
-    - product names
-    - product prices
-    - product stock
-    - product availability
-    - cheapest products
-    - most expensive products
-    - shoes
-    - clothing
-    - electronics
-    - accessories
+    Use this tool for product names, prices, stock,
+    availability, categories, cheapest products,
+    most expensive products and product comparisons.
     """
 
     response = requests.get(
@@ -49,21 +37,18 @@ def get_products():
     return response.text
 
 
-# =========================================================
+# -------------------------------------------------
 # ORDER TOOL
-# =========================================================
+# -------------------------------------------------
 
 @tool
 def get_orders():
     """
     Get all orders from the store.
 
-    Use this tool for:
-    - order information
-    - order status
-    - delivery status
-    - tracking information
-    - customer order information
+    Use this tool for order information, order ID,
+    customer name, order status, delivery status,
+    tracking number, quantity and total.
     """
 
     response = requests.get(
@@ -76,41 +61,36 @@ def get_orders():
     return response.text
 
 
-# =========================================================
-# GEMINI MODEL
-# =========================================================
+# -------------------------------------------------
+# GROQ LLM
+# -------------------------------------------------
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.6-flash",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    temperature=0,
-    max_retries=3
+llm = ChatGroq(
+    model="openai/gpt-oss-120b",
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0
 )
 
 
-# =========================================================
+# -------------------------------------------------
 # LANGCHAIN AGENT
-# =========================================================
+# -------------------------------------------------
 
 agent = create_agent(
     model=llm,
-
     tools=[
         get_products,
         get_orders
     ],
-
     system_prompt="""
 You are a helpful store assistant.
 
 Your job is ONLY to help users with information related
 to this store.
 
-==================================================
-STORE INFORMATION YOU CAN HANDLE
-==================================================
 
 PRODUCTS:
+
 - Product names
 - Product prices
 - Product stock
@@ -125,7 +105,9 @@ PRODUCTS:
 - Accessories
 - Other store products
 
+
 ORDERS:
+
 - Order information
 - Order ID
 - Customer name
@@ -135,9 +117,8 @@ ORDERS:
 - Order quantity
 - Order total
 
-==================================================
-IMPORTANT TOOL RULES
-==================================================
+
+IMPORTANT TOOL RULES:
 
 1. For ANY question about products, ALWAYS use get_products.
 
@@ -147,8 +128,7 @@ IMPORTANT TOOL RULES
 
 4. For ANY question about availability, ALWAYS use get_products.
 
-5. For cheapest or most expensive products,
-   ALWAYS use get_products.
+5. For cheapest or most expensive products, ALWAYS use get_products.
 
 6. For ANY question about orders, ALWAYS use get_orders.
 
@@ -159,113 +139,146 @@ IMPORTANT TOOL RULES
 9. For tracking information, ALWAYS use get_orders.
 
 10. If the user provides an order ID, find that order
-    in the result returned by get_orders.
+    in the get_orders result.
 
-11. If the user provides a customer name and order ID,
+11. If the customer name and order ID are provided,
     verify both using get_orders.
 
 12. NEVER invent product information.
 
 13. NEVER invent order information.
 
-14. NEVER guess prices, stock, availability, order status,
-    delivery status, or tracking numbers.
+14. NEVER guess prices, stock, availability,
+    order status, delivery status or tracking numbers.
 
-15. Only use the actual information returned by the
-    store tools when answering store-data questions.
+15. Only use actual information returned by the
+    store tools.
 
-==================================================
-OUTSIDE QUESTIONS
-==================================================
+
+OUTSIDE QUESTIONS:
 
 You ONLY have information about this store.
 
-If the user asks about something unrelated to the store,
-do NOT answer the unrelated question.
-
-Instead say:
+If the question is unrelated to the store, say:
 
 "Sorry, I can only help with information related to this store."
 
-Examples of unrelated questions:
-- General knowledge
-- Coding questions
-- Python questions
-- News
-- Movies
-- Sports
-- Politics
-- Personal advice
-- General science
-- General mathematics
-- Questions about other companies
-- Questions about people
 
-==================================================
-GREETINGS
-==================================================
+Do not answer general knowledge, coding questions,
+personal advice, news, entertainment or unrelated questions.
 
-Simple greetings are allowed.
 
-For example:
+GREETINGS:
 
-User: Hello
-Assistant: Hello! 👋 How can I help you with our store?
+Simple greetings such as hello, hi and hey are allowed.
 
-User: Hi
-Assistant: Hi! 👋 What would you like to know about our store?
+Do not call store tools for simple greetings.
 
-Do NOT call a store tool for a simple greeting.
 
-==================================================
-ANSWER STYLE
-==================================================
+ANSWER STYLE:
 
-- Be clear.
-- Be concise.
-- Use natural language.
-- Do not show technical details.
-- Do not mention tools unless necessary.
-- Do not mention LangChain or Gemini to the customer.
-- Use actual store data when answering store questions.
+- Clear
+- Concise
+- Natural
+- Helpful
+
+Do not show technical details.
+
+Do not mention tools.
+
+Do not mention LangChain.
+
+Do not mention Gemini.
+
+Do not mention Groq.
+
+Use actual store data.
 """
 )
 
 
-# =========================================================
+# -------------------------------------------------
 # CHAT FUNCTION
-# =========================================================
+# -------------------------------------------------
 
 def ask_chatbot(question):
 
-    last_error = None
+    try:
 
-    for attempt in range(3):
+        response = agent.invoke(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": question
+                    }
+                ]
+            }
+        )
 
-        try:
+        content = response["messages"][-1].content
 
-            response = agent.invoke(
-                {
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": question
-                        }
-                    ]
-                }
+
+        # Normal text response
+        if isinstance(content, str):
+            return content
+
+
+        # Structured response
+        if isinstance(content, list):
+
+            text_parts = []
+
+            for item in content:
+
+                if isinstance(item, dict):
+
+                    if "text" in item:
+                        text_parts.append(
+                            str(item["text"])
+                        )
+
+                else:
+                    text_parts.append(
+                        str(item)
+                    )
+
+            return " ".join(text_parts).strip()
+
+
+        # Other response types
+        return str(content)
+
+
+    except Exception as e:
+
+        print("CHATBOT ERROR:", e)
+
+        error_message = str(e)
+
+        # Groq rate limit / quota
+        if (
+            "429" in error_message
+            or "rate_limit" in error_message.lower()
+            or "quota" in error_message.lower()
+        ):
+            return (
+                "Sorry, the AI service limit has been "
+                "reached. Please try again later."
             )
 
-            return response["messages"][-1].content
-
-        except Exception as e:
-
-            last_error = e
-
-            print(
-                f"Gemini attempt {attempt + 1} failed: {e}"
+        # Service unavailable
+        if (
+            "503" in error_message
+            or "service unavailable" in error_message.lower()
+        ):
+            return (
+                "Sorry, the AI service is temporarily "
+                "unavailable. Please try again later."
             )
 
-            if attempt < 2:
-                time.sleep(3)
-
-    raise last_error
+        # Other errors
+        return (
+            "Sorry, I could not process your request "
+            "right now."
+        )
